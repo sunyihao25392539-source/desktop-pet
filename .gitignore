@@ -9,5 +9,6 @@ env/
 *.log
 dist/
 build/
+runtime/
 *.tmp
 ~$*

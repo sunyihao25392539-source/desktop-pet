@@ -1,0 +1,90 @@
+{
+  "description": "Golden monkey desktop pet: local metadata-only status reporting. Does not grant permissions or alter prompts.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "commandWindows": "\"D:\\原桌面整理\\金丝猴桌面宠物\\GoldenMonkeyCodexHook.exe\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}
+
