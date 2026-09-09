@@ -1,0 +1,33 @@
+name: Build macOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "macos/**"
+      - "assets/**"
+      - ".github/workflows/build-macos.yml"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            artifact: GoldenMonkeyPet-macOS-AppleSilicon
+          - runner: macos-15-intel
+            artifact: GoldenMonkeyPet-macOS-Intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, test, and package
+        run: chmod +x macos/build-app.sh && macos/build-app.sh
+      - name: Normalize archive name
+        run: cp macos/dist/GoldenMonkeyPet-macOS-*.zip "${{ matrix.artifact }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
