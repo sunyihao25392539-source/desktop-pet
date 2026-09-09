@@ -102,6 +102,9 @@ internal sealed class PetForm : Form
     private readonly DateTime statusOpened = DateTime.UtcNow;
     private DateTime statusHiddenUntil;
     private readonly System.Windows.Forms.Timer codexTimer = new System.Windows.Forms.Timer();
+    private readonly EventWaitHandle codexChanged;
+    private readonly Thread codexListener;
+    private volatile bool codexListenerStopping;
     private CodexSnapshot codex = new CodexSnapshot();
     private PetState state = PetState.Idle;
     private bool sleeping;
@@ -203,7 +206,9 @@ internal sealed class PetForm : Form
         codexLabel.SetBounds(20, 0, ClientSize.Width - 40, 26);
         codexLabel.ContextMenuStrip = menu;
         canvas.Controls.Add(codexLabel);
-        codexTimer.Interval = 700;
+        codexChanged = new EventWaitHandle(false, EventResetMode.AutoReset, CodexStatus.ChangeEventName);
+        codexListener = new Thread(CodexChangeLoop) { IsBackground = true, Name = "GoldenMonkeyCodexStatus" };
+        codexTimer.Interval = 200;
         codexTimer.Tick += CodexTick;
         CodexTick(null, EventArgs.Empty);
         codexTimer.Start();
@@ -238,7 +243,18 @@ internal sealed class PetForm : Form
         bounceTimer.Interval = 32;
         bounceTimer.Tick += BounceTick;
 
-        Shown += delegate { Activate(); BringToFront(); };
+        Shown += delegate { Activate(); BringToFront(); if (!codexListener.IsAlive) codexListener.Start(); };
+    }
+
+    private void CodexChangeLoop()
+    {
+        while (!codexListenerStopping)
+        {
+            codexChanged.WaitOne();
+            if (codexListenerStopping) return;
+            try { BeginInvoke(new MethodInvoker(delegate { CodexTick(null, EventArgs.Empty); })); }
+            catch (InvalidOperationException) { return; }
+        }
     }
 
     private void CodexTick(object sender, EventArgs e)
@@ -264,7 +280,7 @@ internal sealed class PetForm : Form
         string caption = codex.Phase == "waiting" ? "等你确认" : codex.Phase == "busy"
             ? (codex.Text.Contains("修改") ? "改代码中" : codex.Text.Contains("工具") ? "执行中" : "忙碌中")
             : codex.Phase == "ended" ? "本轮结束" : codex.Phase == "interrupted" ? "已暂停"
-            : codex.Phase == "unknown" ? "状态待更新" : "待连接";
+            : codex.Phase == "unknown" ? "读取暂不可用" : "待连接";
         if (codex.Active > 1) caption += " · " + codex.Active;
         bool compact = codex.Phase == "disconnected" && (now - statusOpened).TotalSeconds > 6;
         bool show = codex.Active > 0 || codex.Phase == "unknown" || codex.Phase == "disconnected"
@@ -809,6 +825,10 @@ internal sealed class PetForm : Form
     {
         if (disposing)
         {
+            codexListenerStopping = true;
+            codexChanged.Set();
+            if (codexListener.IsAlive) codexListener.Join(300);
+            codexChanged.Dispose();
             effectTimer.Dispose();
             codexTimer.Dispose();
             codexTip.Dispose();

@@ -17,6 +17,14 @@ final class CodexStatusTests: XCTestCase {
         XCTAssertEqual(CodexStatus.read(directory: root).phase, "ended")
     }
 
+    func testAbandonedBusyStateExpiresToIdle() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let json = ["session_id":"stale", "turn_id":"one", "hook_event_name":"UserPromptSubmit"]
+        try CodexStatus.receive(try JSONSerialization.data(withJSONObject: json), directory: root)
+        XCTAssertEqual(CodexStatus.read(now: Date().addingTimeInterval(3600), directory: root).phase, "idle")
+    }
+
     func testPromptAndArgumentsAreNotPersisted() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

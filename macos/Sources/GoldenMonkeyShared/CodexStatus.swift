@@ -24,6 +24,8 @@ public struct CodexSnapshot {
 }
 
 public enum CodexStatus {
+    public static let changedNotification = Notification.Name("com.sunyihao.goldenmonkeypet.codex-status-changed")
+    private static let busyExpiry: TimeInterval = 5 * 60
     public static var directoryURL: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return base.appendingPathComponent("GoldenMonkeyPet/codex-status", isDirectory: true)
@@ -80,6 +82,7 @@ public enum CodexStatus {
         try data.write(to: temp, options: .atomic)
         if FileManager.default.fileExists(atPath: target.path) { try FileManager.default.removeItem(at: target) }
         try FileManager.default.moveItem(at: temp, to: target)
+        DistributedNotificationCenter.default().postNotificationName(changedNotification, object: nil, userInfo: nil, deliverImmediately: true)
     }
 
     public static func read(now: Date = Date(), directory: URL? = nil) -> CodexSnapshot {
@@ -96,7 +99,7 @@ public enum CodexStatus {
             if latest == nil || record.updated > latest!.updated { latest = record }
             if record.updated > result.revision { result.revision = record.updated }
             guard record.phase == "busy" else { continue }
-            if now.timeIntervalSince(record.updated) > 1800 { stale += 1; continue }
+            if now.timeIntervalSince(record.updated) > busyExpiry { stale += 1; continue }
             result.active += 1
             waiting += record.waiting.count
             editing = editing || record.tools.values.contains("edit")
@@ -107,7 +110,7 @@ public enum CodexStatus {
         else if result.active > 0 {
             result.phase = "busy"
             result.text = editing ? "Codex：修改文件" : tools ? "Codex：执行工具" : "Codex：正在工作"
-        } else if stale > 0 { result.phase = "unknown"; result.text = "Codex：状态待更新" }
+        } else if stale > 0 { result.phase = "idle"; result.text = "Codex：暂无活动" }
         else {
             result.phase = newest.phase
             let recent = now.timeIntervalSince(newest.updated) < 15

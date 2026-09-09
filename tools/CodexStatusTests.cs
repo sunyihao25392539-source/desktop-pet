@@ -15,7 +15,11 @@ internal static class CodexStatusTests
     {
         CodexStatus.DirectoryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "runtime", "tests-" + Guid.NewGuid().ToString("N"));
         Check(Read().Phase == "disconnected", "Must not pretend connected");
-        Send("one", "a", "UserPromptSubmit", "", "");
+        using (var changed = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, CodexStatus.ChangeEventName))
+        {
+            Send("one", "a", "UserPromptSubmit", "", "");
+            Check(changed.WaitOne(500), "Hook did not signal immediate refresh");
+        }
         Send("two", "b", "UserPromptSubmit", "", "");
         Check(Read().Active == 2, "Multi task count");
         Send("one", "a", "PreToolUse", "apply_patch", "edit");
@@ -33,7 +37,7 @@ internal static class CodexStatusTests
         Send("one", "new", "UserPromptSubmit", "", "");
         Send("one", "a", "Stop", "", "");
         Check(Read().Active == 1, "Late old stop ended new turn");
-        Check(CodexStatus.Read(DateTime.UtcNow.AddHours(1)).Phase == "unknown", "Stale state claimed completion");
+        Check(CodexStatus.Read(DateTime.UtcNow.AddHours(1)).Phase == "idle", "Stale state did not expire to idle");
         foreach (string path in Directory.GetFiles(CodexStatus.DirectoryPath, "*.json"))
             Check(!File.ReadAllText(path).Contains("PRIVATE"), "Stored sensitive payload");
         string exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GoldenMonkeyCodexHook.exe");
@@ -54,6 +58,6 @@ internal static class CodexStatusTests
             File.Delete(path); // Remove only this test's synthetic event, never a real session.
         }
         Check(persisted, "Real executable did not persist stdin event");
-        Console.WriteLine("PASS: real hook process, concurrent tasks/tools, approvals, end, interruption, stale state, old-turn isolation, metadata privacy.");
+        Console.WriteLine("PASS: immediate refresh signal, real hook process, concurrent tasks/tools, approvals, end, interruption, stale expiry, old-turn isolation, metadata privacy.");
     }
 }

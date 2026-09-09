@@ -4,7 +4,9 @@
 
 Windows 版本运行 `run_pet.bat`。macOS 原生版本、下载方式和 Codex 联动说明见 [macos/README.md](macos/README.md)。
 
-当前默认运行版本：GoldenMonkeyPet-v14.exe
+当前默认运行版本：GoldenMonkeyPet-v15.exe
+
+v15：Windows 与 macOS 的 Codex 状态刷新改为“跨进程即时通知 + 200 毫秒轮询兜底”；缺失结束事件的孤立忙碌记录在 5 分钟后静默回到空闲，不再长期显示“状态待更新”。
 
 v7 修复：使用四帧小步行走素材，修复脚部色块；移动与步伐分频，避免眨眼与行走互相覆盖。退出旧版后重新运行启动脚本生效。
 

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-start "" "%~dp0GoldenMonkeyPet-v14.exe"
+start "" "%~dp0GoldenMonkeyPet-v15.exe"
 
 
 

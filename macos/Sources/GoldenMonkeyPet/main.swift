@@ -30,6 +30,7 @@ private final class PetView: NSView {
     private var dragStartScreen = CGPoint.zero, dragStartWindow = CGPoint.zero
     private var effects: [FloatingEffect] = []
     private var timers: [Timer] = []
+    private var codexObserver: NSObjectProtocol?
     private var codex = CodexSnapshot(), statusOpened = Date(), statusHiddenUntil = Date.distantPast, pulse = 0
     private let bounceOffsets: [CGFloat] = [0, -8, -12, -8, -3, 2, 0]
     private var walkMenuItem: NSMenuItem!, sleepMenuItem: NSMenuItem!, topMenuItem: NSMenuItem!
@@ -50,6 +51,7 @@ private final class PetView: NSView {
         view.buildMenu()
         view.nextBlink = Date().addingTimeInterval(Double.random(in: 2.2...4.8, using: &view.rng))
         view.nextWalk = Date().addingTimeInterval(Double.random(in: 1.4...2.6, using: &view.rng))
+        view.codexObserver = DistributedNotificationCenter.default().addObserver(forName: CodexStatus.changedNotification, object: nil, queue: .main) { [weak view] _ in view?.codexTick() }
         view.startTimers()
         return view
     }
@@ -154,7 +156,7 @@ private final class PetView: NSView {
         schedule(0.070) { [weak self] in self?.animationTick() }
         schedule(0.030) { [weak self] in self?.movementTick() }
         schedule(0.032) { [weak self] in self?.bounceTick() }
-        schedule(0.700) { [weak self] in self?.codexTick() }
+        schedule(0.200) { [weak self] in self?.codexTick() }
         schedule(6.500) { [weak self] in guard let self, !self.sleeping, !self.dragPending, Double.random(in: 0...1, using: &self.rng) < 0.35 else { return }; self.addHearts(1) }
     }
 
@@ -221,7 +223,7 @@ private final class PetView: NSView {
         let recentEnd = ["ended", "interrupted"].contains(codex.phase) && now.timeIntervalSince(codex.revision) < 6
         let show = codex.active > 0 || ["unknown", "disconnected"].contains(codex.phase) || recentEnd
         guard show, now >= statusHiddenUntil else { return }
-        var caption = codex.phase == "waiting" ? "等你确认" : codex.phase == "busy" ? (codex.text.contains("修改") ? "改代码中" : codex.text.contains("工具") ? "执行中" : "忙碌中") : codex.phase == "ended" ? "本轮结束" : codex.phase == "interrupted" ? "已暂停" : codex.phase == "unknown" ? "状态待更新" : "待连接"
+        var caption = codex.phase == "waiting" ? "等你确认" : codex.phase == "busy" ? (codex.text.contains("修改") ? "改代码中" : codex.text.contains("工具") ? "执行中" : "忙碌中") : codex.phase == "ended" ? "本轮结束" : codex.phase == "interrupted" ? "已暂停" : codex.phase == "unknown" ? "读取暂不可用" : "待连接"
         if codex.active > 1 { caption += " · \(codex.active)" }
         let compact = codex.phase == "disconnected" && now.timeIntervalSince(statusOpened) > 6
         let textWidth = (caption as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 12)]).width
@@ -337,7 +339,10 @@ private final class PetView: NSView {
     }
 
     private func alert(_ title: String, _ message: String) { let value = NSAlert(); value.messageText = title; value.informativeText = message; value.alertStyle = title.contains("失败") ? .warning : .informational; value.runModal() }
-    deinit { timers.forEach { $0.invalidate() } }
+    deinit {
+        timers.forEach { $0.invalidate() }
+        if let codexObserver { DistributedNotificationCenter.default().removeObserver(codexObserver) }
+    }
 }
 
 private final class AppDelegate: NSObject, NSApplicationDelegate {

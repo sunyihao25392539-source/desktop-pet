@@ -27,6 +27,8 @@ internal sealed class CodexSnapshot
 
 internal static class CodexStatus
 {
+    internal const string ChangeEventName = "Local\\GoldenMonkeyCodexStatusChangedV1";
+    private static readonly TimeSpan BusyExpiry = TimeSpan.FromMinutes(5);
     internal static string DirectoryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "runtime", "codex-status");
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 4194304 };
 
@@ -79,6 +81,7 @@ internal static class CodexStatus
                 string temp = path + ".tmp";
                 File.WriteAllText(temp, Json.Serialize(record), new UTF8Encoding(false));
                 if (File.Exists(path)) File.Replace(temp, path, null); else File.Move(temp, path);
+                SignalChange();
             }
             finally { if (held) gate.ReleaseMutex(); }
         }
@@ -102,7 +105,7 @@ internal static class CodexStatus
             if (latest == null || record.Updated > latest.Updated) latest = record;
             result.Revision = Math.Max(result.Revision, record.Updated);
             if (record.Phase != "busy") continue;
-            if (now.Ticks - record.Updated > TimeSpan.FromMinutes(30).Ticks) { stale++; continue; }
+            if (now.Ticks - record.Updated > BusyExpiry.Ticks) { stale++; continue; }
             result.Active++;
             waiting += record.Waiting.Count;
             editing |= record.Tools.ContainsValue("edit"); tools |= record.Tools.Count > 0;
@@ -114,7 +117,7 @@ internal static class CodexStatus
             result.Phase = "busy";
             result.Text = editing ? "Codex：修改文件" : tools ? "Codex：执行工具" : "Codex：正在工作";
         }
-        else if (stale > 0) { result.Phase = "unknown"; result.Text = "Codex：状态待更新"; }
+        else if (stale > 0) { result.Phase = "idle"; result.Text = "Codex：暂无活动"; }
         else
         {
             result.Phase = latest.Phase;
@@ -125,5 +128,15 @@ internal static class CodexStatus
         if (result.Active > 1) result.Text += " ×" + result.Active;
         if (stale > 0 && result.Active > 0) result.Text += " ?";
         return result;
+    }
+
+    private static void SignalChange()
+    {
+        try
+        {
+            using (EventWaitHandle changed = EventWaitHandle.OpenExisting(ChangeEventName)) changed.Set();
+        }
+        catch (WaitHandleCannotBeOpenedException) { /* Pet is not running; polling will recover later. */ }
+        catch (UnauthorizedAccessException) { /* Status persistence is still sufficient. */ }
     }
 }
