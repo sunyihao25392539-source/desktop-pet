@@ -38,15 +38,20 @@ private final class PetView: NSView {
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
-    init() throws {
-        super.init(frame: NSRect(x: 0, y: 0, width: 167, height: 222))
+    private override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
         wantsLayer = true
         layer?.backgroundColor = NSColor.clear.cgColor
-        try loadFrames()
-        buildMenu()
-        nextBlink = Date().addingTimeInterval(Double.random(in: 2.2...4.8, using: &rng))
-        nextWalk = Date().addingTimeInterval(Double.random(in: 1.4...2.6, using: &rng))
-        startTimers()
+    }
+
+    static func create() throws -> PetView {
+        let view = PetView(frame: NSRect(x: 0, y: 0, width: 167, height: 222))
+        try view.loadFrames()
+        view.buildMenu()
+        view.nextBlink = Date().addingTimeInterval(Double.random(in: 2.2...4.8, using: &view.rng))
+        view.nextWalk = Date().addingTimeInterval(Double.random(in: 1.4...2.6, using: &view.rng))
+        view.startTimers()
+        return view
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -339,7 +344,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
-            let view = try PetView()
+            let view = try PetView.create()
             let frame = NSRect(origin: .zero, size: view.frame.size)
             let value = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
             value.contentView = view; value.isOpaque = false; value.backgroundColor = .clear; value.hasShadow = false; value.level = .floating
@@ -355,7 +360,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 let app = NSApplication.shared
-let delegate = AppDelegate()
+private let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
 app.run()
